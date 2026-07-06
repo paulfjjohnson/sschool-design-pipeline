@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import shutil
+from datetime import datetime
 
 from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtGui import QAction
@@ -27,6 +28,9 @@ from app.engine.templates import TemplateValidator
 from app.ui.models import SchoolQueueModel
 from app.ui.preview import PreviewWidget
 from app.ui.registration import TemplateRegistrationDialog
+from app.ui.operation_editor import OperationEditorDialog
+from app.engine.tabular_importer import TabularImporter
+from app.data.serialization import read_yaml, write_yaml
 from app.ui.settings import SettingsDialog
 from app.utils.paths import open_folder
 
@@ -92,6 +96,8 @@ class MainWindow(QMainWindow):
         self.action_validate_template.triggered.connect(self.validate_template)
         self.action_view_template_metadata = QAction("View Template Metadata", self)
         self.action_view_template_metadata.triggered.connect(self.view_template_metadata)
+        self.action_edit_operations = QAction("Edit Template Operations", self)
+        self.action_edit_operations.triggered.connect(self.edit_template_operations)
 
         self.action_start_batch = QAction("Start Batch", self)
         self.action_start_batch.setObjectName("action_start_batch")
@@ -141,6 +147,7 @@ class MainWindow(QMainWindow):
             self.action_register_regions,
             self.action_validate_template,
             self.action_view_template_metadata,
+            self.action_edit_operations,
         ):
             template_menu.addAction(action)
 
@@ -321,8 +328,41 @@ class MainWindow(QMainWindow):
         regions = "\n".join(f"{r.name}: {r.x}, {r.y}, {r.width} x {r.height}" for r in template.editable_regions)
         QMessageBox.information(self, "Template Metadata", f"{template.name} v{template.version}\n{template.output_width} x {template.output_height}\n\n{regions}")
 
+    def edit_template_operations(self) -> None:
+        project, template = self.controller.project, self.controller.template
+        if project is None or template is None:
+            QMessageBox.warning(self, "Template Not Ready", "Open a project and load its template first.")
+            return
+        columns: list[str] = []
+        if project.csv_path and project.csv_path.exists():
+            columns = TabularImporter().import_file(project.csv_path).columns
+        dialog = OperationEditorDialog(columns, template.operations)
+        if not dialog.exec(): return
+        metadata_path = project.root_path / "template" / "template.yaml"
+        data = read_yaml(metadata_path)
+        root = metadata_path.parent
+        serialized = []
+        for operation in dialog.operations():
+            mask_path = None
+            if operation.mask_path:
+                try: mask_path = operation.mask_path.relative_to(root).as_posix()
+                except ValueError: mask_path = str(operation.mask_path)
+            serialized.append({"operation_id": operation.operation_id, "name": operation.name,
+                "operation_type": operation.operation_type.value, "layer_order": operation.layer_order,
+                "x": operation.x, "y": operation.y, "width": operation.width, "height": operation.height,
+                "column": operation.column, "default_value": operation.default_value,
+                "allow_override": operation.allow_override, "required": operation.required,
+                "mask_path": mask_path, "config": operation.config})
+        data["schema_version"] = "2.0"; data["operations"] = serialized
+        backup = project.root_path / "backups" / f"template-before-v2-{datetime.now():%Y%m%d-%H%M%S}.yaml"
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(metadata_path, backup)
+        write_yaml(metadata_path, data)
+        self.controller.load_template(metadata_path)
+        self._refresh_header("Operations saved")
+
     def load_csv(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Load CSV", "", "CSV Files (*.csv)")
+        path, _ = QFileDialog.getOpenFileName(self, "Load Batch File", "", "Batch Files (*.csv *.xlsx)")
         if path:
             try:
                 rows = self.controller.load_csv(Path(path))
