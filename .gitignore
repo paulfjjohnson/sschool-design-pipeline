@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.spec.bak
+.venv/
+venv/
+*.log
+projects/
+sample_project/output/
+sample_project/logs/
+sample_project/qa/
+sample_project/reports/
+sample_project/progress.json
