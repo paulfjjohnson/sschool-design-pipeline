@@ -23,3 +23,17 @@ def test_main_window_contains_required_panels(qtbot) -> None:
     assert window.qa_panel.objectName() == "qa_panel"
     assert window.log_view.objectName() == "logs_panel"
 
+
+def test_new_project_action_creates_project(qtbot, monkeypatch, tmp_path) -> None:
+    window = MainWindow(ApplicationController.fake())
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "app.ui.main_window.QFileDialog.getExistingDirectory",
+        lambda *args, **kwargs: str(tmp_path / "My Project"),
+    )
+
+    window.action_new_project.trigger()
+
+    assert window.controller.project is not None
+    assert window.controller.project.project_name == "My Project"
+

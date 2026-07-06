@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from threading import Event
 from typing import Sequence
 
 from app.controller.progress import ProgressService
@@ -31,6 +32,8 @@ class BatchProcessor:
         self.exporter = exporter
         self._paused = False
         self._stopped = False
+        self._running = Event()
+        self._running.set()
 
     @classmethod
     def default(cls) -> BatchProcessor:
@@ -38,12 +41,15 @@ class BatchProcessor:
 
     def pause(self) -> None:
         self._paused = True
+        self._running.clear()
 
     def resume(self) -> None:
         self._paused = False
+        self._running.set()
 
     def stop(self) -> None:
         self._stopped = True
+        self._running.set()
 
     def start(self, project, template: Template, queue: Sequence[SchoolRecord]) -> BatchResult:
         self._stopped = False
@@ -57,6 +63,7 @@ class BatchProcessor:
         qa_results: list[QAResult] = []
 
         for record in queue:
+            self._running.wait()
             if self._stopped:
                 break
             if record.row_number in completed_rows:

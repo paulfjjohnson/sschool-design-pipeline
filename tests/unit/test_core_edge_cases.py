@@ -64,3 +64,22 @@ def test_application_controller_loads_project_template_csv_and_starts(tmp_path: 
     assert result.completed == 4
     assert len(list(project.output_path.glob("*.png"))) == 4
 
+
+def test_application_controller_reopens_project_inputs(tmp_path: Path) -> None:
+    controller = ApplicationController()
+    project = controller.new_project("Reopen", tmp_path)
+    template_dir = project.root_path / "template"
+    import shutil
+
+    shutil.copytree(Path("sample_project/template"), template_dir, dirs_exist_ok=True)
+    csv_path = project.root_path / "input" / "schools.csv"
+    shutil.copy2(Path("sample_project/input/schools.csv"), csv_path)
+    controller.load_template(template_dir / "template.yaml")
+    controller.load_csv(csv_path)
+
+    reopened = ApplicationController()
+    reopened.open_project(project.root_path / "project.json")
+
+    assert reopened.template is not None
+    assert reopened.queue
+

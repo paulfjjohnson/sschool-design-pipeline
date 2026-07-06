@@ -18,12 +18,15 @@ Rows with missing data, unknown colors, duplicate output filenames, or ambiguous
 ## Workflow
 
 1. Open the application with `python -m app.main` or the packaged executable.
-2. Create or open a project.
-3. Load a registered template metadata file such as `sample_project/template/template.yaml`.
-4. Load a school CSV such as `sample_project/input/schools.csv`.
-5. Click `Start Batch`.
-6. Leave the workstation while the queue processes.
-7. Review the output folder, logs, QA results, progress file, and reports.
+2. Select `File > New Project` and choose an empty project folder, or select `File > Open Project` and choose its `project.json`.
+3. To register new artwork, select `Template > Register Editable Regions`, choose a transparent PNG, then draw the `initials`, `script`, `floral`, and `outline` regions. Select each region name before dragging its rectangle and press `Save` after all four are visible.
+4. Alternatively, select `Load Template` to open an existing registered `template.yaml`.
+5. Select `Load CSV` and choose a file containing the required columns shown above.
+6. Confirm that the project, template, and CSV all appear in the header, then click `Start` once.
+7. Leave the workstation while the queue processes. Processing runs in the background, and `Pause`, `Resume`, and `Stop` remain available.
+8. Select `Open Output` to review exported PNG files. Reports and resumable state are stored inside the project folder.
+
+The image itself is never modified. Registration copies it to `template/master.png`, creates masks under `template/masks`, and writes `template/template.yaml`.
 
 ## Batch Controls
 

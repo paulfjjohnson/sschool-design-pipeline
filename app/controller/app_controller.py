@@ -29,10 +29,19 @@ class ApplicationController:
 
     def open_project(self, path: Path) -> Project:
         self.project = self.project_manager.load_project(path)
+        metadata_path = self.project.root_path / "template" / "template.yaml"
+        if metadata_path.exists():
+            self.template = TemplateRegistry.load(metadata_path)
+        if self.project.csv_path and self.project.csv_path.exists():
+            self.queue = CsvImporter(ColorLibrary.default(), InitialGenerator()).import_file(self.project.csv_path)
         return self.project
 
     def load_template(self, path: Path) -> Template:
         self.template = TemplateRegistry.load(path)
+        if self.project:
+            self.project.template_id = self.template.template_id
+            self.project.template_version = self.template.version
+            self.project_manager.save_project(self.project)
         return self.template
 
     def load_csv(self, path: Path) -> list[SchoolRecord]:

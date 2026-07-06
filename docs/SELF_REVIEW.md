@@ -10,7 +10,7 @@
 - CSV import and validation.
 - Natural initials generation without padding.
 - Color library with aliases and unknown-color review failures.
-- PNG template registration metadata and editable masks.
+- Interactive PNG template registration with four operator-drawn editable regions, generated masks, and metadata.
 - Deterministic PNG rendering inside registered regions.
 - Locked-region pixel validation.
 - QA-gated export.
@@ -27,7 +27,6 @@
 - PSD, AI, EPS, PDF vector editing remain future roadmap features.
 - SVG support is represented in the architecture but the production renderer implemented here is PNG-first.
 - The sample template uses simple raster fixtures. Real production templates must be registered with masks and explicit fonts.
-- The UI registration dialog is a production placeholder for region registration workflow entry; detailed mouse-driven region editing should be expanded before broad operator rollout.
 - The installer script requires Inno Setup to be installed externally.
 
 ## Production Risk Review
