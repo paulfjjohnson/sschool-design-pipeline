@@ -1,0 +1,48 @@
+template_id: floral-varsity-sample
+name: Floral Varsity Sample
+version: '1.0'
+format: PNG
+source_path: master.png
+output_width: 240
+output_height: 160
+editable_regions:
+- region_id: initials
+  name: initials
+  region_type: TEXT
+  x: 20
+  y: 20
+  width: 110
+  height: 60
+  rotation: 0
+  locked: false
+  mask_path: masks/initials.png
+- region_id: outline
+  name: outline
+  region_type: COLOR
+  x: 18
+  y: 18
+  width: 114
+  height: 64
+  rotation: 0
+  locked: false
+  mask_path: masks/outline.png
+- region_id: script
+  name: script
+  region_type: TEXT
+  x: 30
+  y: 92
+  width: 180
+  height: 33
+  rotation: 0
+  locked: false
+  mask_path: masks/script.png
+- region_id: floral
+  name: floral
+  region_type: COLOR
+  x: 45
+  y: 30
+  width: 70
+  height: 40
+  rotation: 0
+  locked: false
+  mask_path: masks/floral.png
