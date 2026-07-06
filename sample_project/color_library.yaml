@@ -1,0 +1,19 @@
+colors:
+  - display_name: Red
+    hex: "#C8102E"
+    aliases: [scarlet]
+  - display_name: Royal Blue
+    hex: "#0057B8"
+    aliases: [royal, royal blue]
+  - display_name: Green
+    hex: "#00843D"
+    aliases: [kelly green]
+  - display_name: Yellow
+    hex: "#FFD100"
+    aliases: [gold, school bus yellow]
+  - display_name: White
+    hex: "#FFFFFF"
+    aliases: []
+  - display_name: Navy
+    hex: "#00205B"
+    aliases: [navy blue]
