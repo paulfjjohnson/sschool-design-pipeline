@@ -29,6 +29,7 @@ from app.ui.models import SchoolQueueModel
 from app.ui.preview import PreviewWidget
 from app.ui.registration import TemplateRegistrationDialog
 from app.ui.operation_editor import OperationEditorDialog
+from app.ui.flexible_registration import FlexibleRegistrationDialog
 from app.engine.tabular_importer import TabularImporter
 from app.data.serialization import read_yaml, write_yaml
 from app.ui.settings import SettingsDialog
@@ -92,6 +93,8 @@ class MainWindow(QMainWindow):
 
         self.action_register_regions = QAction("Register Editable Regions", self)
         self.action_register_regions.triggered.connect(self.register_template)
+        self.action_create_flexible = QAction("Create Flexible Template", self)
+        self.action_create_flexible.triggered.connect(self.create_flexible_template)
         self.action_validate_template = QAction("Validate Template", self)
         self.action_validate_template.triggered.connect(self.validate_template)
         self.action_view_template_metadata = QAction("View Template Metadata", self)
@@ -145,6 +148,7 @@ class MainWindow(QMainWindow):
         template_menu = self.menuBar().addMenu("Template")
         for action in (
             self.action_register_regions,
+            self.action_create_flexible,
             self.action_validate_template,
             self.action_view_template_metadata,
             self.action_edit_operations,
@@ -299,6 +303,16 @@ class MainWindow(QMainWindow):
             self.controller.project_manager.save_project(self.controller.project)
             self.preview.load_image(template.source_path)
             self._refresh_header("Template registered")
+
+    def create_flexible_template(self) -> None:
+        if self.controller.project is None:
+            QMessageBox.warning(self, "No Project", "Create or open a project first.")
+            return
+        dialog = FlexibleRegistrationDialog(self.controller.project.root_path / "template")
+        if dialog.exec() and dialog.metadata_path:
+            self.controller.load_template(dialog.metadata_path)
+            self.preview.load_image(self.controller.template.source_path)
+            self._refresh_header("Flexible template created")
 
     def load_template(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load Template", "", "Template Metadata (*.yaml *.yml)")

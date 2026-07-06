@@ -19,6 +19,8 @@ Flexible version 2 templates may use CSV or XLSX files and map any column name t
 
 ## Flexible Templates
 
+Select `Template > Create Flexible Template` to create a new version 2 template directly from a master PNG and optional sample CSV/XLSX file. Add and map operations before saving; no legacy Floral Varsity regions are required.
+
 After loading a template and batch file, select `Template > Edit Template Operations`. Operations can be added, removed, reordered, and mapped to spreadsheet columns. Supported types are `TEXT`, `SOLID_COLOR`, `PATTERN_FILL`, `IMAGE_REPLACE`, `VISIBILITY`, and `LOCKED`.
 
 Each operation has bounds, a default value, an optional spreadsheet mapping, a required flag, and an override policy. The optional configuration JSON supports settings such as `{"fit":"contain"}`, `{"fit":"cover"}`, `{"case":"title"}`, and `{"color_column":"Accent Color"}`. Saving version 2 operations creates a backup of the prior template metadata.
