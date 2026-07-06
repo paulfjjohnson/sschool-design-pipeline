@@ -1,0 +1,2 @@
+"""Plugin contracts and discovery."""
+
