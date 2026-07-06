@@ -30,3 +30,72 @@ def test_visibility_false_clears_only_registered_region(sample_template_path: Pa
     image = OperationRenderer().render(template, {"Show": "no"}, Path("rows.csv"))
     assert image.getpixel((25, 25))[3] == 0
     assert image.getpixel((5, 5))[3] == Image.open(template.source_path).convert("RGBA").getpixel((5, 5))[3]
+
+
+def test_pattern_text_renders_mapped_text_with_pattern_and_outline(sample_template_path: Path, tmp_path: Path) -> None:
+    template = TemplateRegistry.load(sample_template_path)
+    pattern = tmp_path / "seersucker.png"
+    pattern_image = Image.new("RGBA", (8, 8), (255, 255, 255, 255))
+    for x in range(0, 8, 4):
+        for stripe_x in (x, x + 1):
+            for y in range(8):
+                pattern_image.putpixel((stripe_x, y), (0, 0, 255, 255))
+    pattern_image.save(pattern)
+    template.pattern_path = pattern
+    template.operations = [TemplateOperation(
+        "mascot",
+        "Mascot Pattern Text",
+        OperationType.PATTERN_TEXT,
+        1,
+        0,
+        0,
+        200,
+        80,
+        column="Mascot",
+        config={
+            "case": "upper",
+            "outline_color_column": "Color 1",
+            "pattern_color_column": "Color 2",
+            "outline_width": 4,
+            "pattern_treatment": "tint_nonwhite",
+        },
+    )]
+
+    image = OperationRenderer().render(
+        template,
+        {"Mascot": "Griffins", "Color 1": "Gray", "Color 2": "Purple"},
+        tmp_path / "rows.csv",
+    )
+
+    pixels = [image.getpixel((x, y)) for x in range(200) for y in range(80)]
+    assert any(pixel[:3] == (138, 141, 143) and pixel[3] == 255 for pixel in pixels)
+    assert any(pixel[:3] == (88, 44, 131) and pixel[3] == 255 for pixel in pixels)
+    assert image.getbbox() is not None
+
+
+def test_pattern_text_preserves_letter_counters(sample_template_path: Path, tmp_path: Path) -> None:
+    template = TemplateRegistry.load(sample_template_path)
+    pattern = tmp_path / "pattern.png"
+    Image.new("RGBA", (6, 6), (75, 0, 130, 255)).save(pattern)
+    template.pattern_path = pattern
+    template.operations = [TemplateOperation(
+        "mascot",
+        "Mascot Pattern Text",
+        OperationType.PATTERN_TEXT,
+        1,
+        0,
+        0,
+        120,
+        90,
+        column="Mascot",
+        config={"case": "upper", "outline_color": "Gray", "outline_width": 3},
+    )]
+
+    image = OperationRenderer().render(template, {"Mascot": "POP"}, tmp_path / "rows.csv")
+
+    center_alpha_values = [
+        image.getpixel((x, y))[3]
+        for x in range(45, 75)
+        for y in range(22, 55)
+    ]
+    assert any(alpha == 0 for alpha in center_alpha_values)

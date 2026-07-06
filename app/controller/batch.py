@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from threading import Event
 from typing import Sequence
@@ -11,6 +12,8 @@ from app.engine.operations import OperationRenderer
 from app.export.exporter import PngExporter
 from app.export.reports import ReportWriter
 from app.qa.service import QAService
+
+LOGGER = logging.getLogger("school_design_pipeline")
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +80,14 @@ class BatchProcessor:
             if record.status is SchoolStatus.NEEDS_REVIEW:
                 record.status = SchoolStatus.FAILED
                 record.qa_status = QAStatus.FAILED
+                if not record.notes:
+                    record.notes = "Row requires manual review before export."
+                LOGGER.warning(
+                    "Row %s failed before rendering: %s | %s",
+                    record.row_number,
+                    record.school_name,
+                    record.notes,
+                )
                 progress.mark_failed(record)
                 failed += 1
                 continue
@@ -95,6 +106,12 @@ class BatchProcessor:
                     record.status = SchoolStatus.FAILED
                     record.qa_status = QAStatus.FAILED
                     record.notes = " ".join(qa.failures)
+                    LOGGER.warning(
+                        "Row %s failed QA: %s | %s",
+                        record.row_number,
+                        record.school_name,
+                        record.notes,
+                    )
                     progress.mark_failed(record)
                     failed += 1
                     continue
@@ -107,6 +124,12 @@ class BatchProcessor:
                 record.status = SchoolStatus.FAILED
                 record.qa_status = QAStatus.FAILED
                 record.notes = str(exc)
+                LOGGER.exception(
+                    "Row %s failed during rendering/export: %s | %s",
+                    record.row_number,
+                    record.school_name,
+                    record.notes,
+                )
                 progress.mark_failed(record)
                 failed += 1
 

@@ -37,6 +37,7 @@ class RegionType(str, Enum):
 
 class OperationType(str, Enum):
     TEXT = "TEXT"
+    PATTERN_TEXT = "PATTERN_TEXT"
     SOLID_COLOR = "SOLID_COLOR"
     PATTERN_FILL = "PATTERN_FILL"
     IMAGE_REPLACE = "IMAGE_REPLACE"

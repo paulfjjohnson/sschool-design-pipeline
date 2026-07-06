@@ -13,6 +13,7 @@ from app.data.models import Project, QAResult, SchoolRecord
 class ReportPaths:
     csv: Path
     html: Path
+    failed_csv: Path
 
 
 class ReportWriter:
@@ -28,6 +29,7 @@ class ReportWriter:
         self.report_dir.mkdir(parents=True, exist_ok=True)
         csv_path = self.report_dir / "batch_summary.csv"
         html_path = self.report_dir / "batch_summary.html"
+        failed_csv_path = self.report_dir / "failed_items.csv"
         qa_by_school = {result.school: result for result in qa_results}
 
         with csv_path.open("w", newline="", encoding="utf-8") as handle:
@@ -43,6 +45,23 @@ class ReportWriter:
                         "Passed" if qa and qa.passed else record.qa_status.value,
                         record.export_filename,
                         record.notes,
+                    ]
+                )
+
+        with failed_csv_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["row", "school", "status", "qa", "output", "failure_reason"])
+            for record in records:
+                if record.status.value not in {"Failed", "NeedsReview"} and not record.notes:
+                    continue
+                writer.writerow(
+                    [
+                        record.row_number,
+                        record.school_name,
+                        record.status.value,
+                        record.qa_status.value,
+                        record.export_filename,
+                        record.notes or record.status.value,
                     ]
                 )
 
@@ -70,4 +89,4 @@ class ReportWriter:
             f"<tbody>{rows}</tbody></table></body></html>",
             encoding="utf-8",
         )
-        return ReportPaths(csv=csv_path, html=html_path)
+        return ReportPaths(csv=csv_path, html=html_path, failed_csv=failed_csv_path)
