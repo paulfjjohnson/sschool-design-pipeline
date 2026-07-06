@@ -42,3 +42,21 @@ def test_registration_rejects_region_outside_image(tmp_path: Path) -> None:
         assert "inside the image" in str(exc)
     else:
         raise AssertionError("Expected invalid region to be rejected")
+
+
+def test_registration_copies_dedicated_pattern_asset(tmp_path: Path) -> None:
+    source = tmp_path / "artwork.png"
+    pattern = tmp_path / "floral-pattern.png"
+    Image.new("RGBA", (100, 100)).save(source)
+    Image.new("RGB", (64, 64), (240, 220, 230)).save(pattern)
+    regions = {name: RegionSelection(0, 0, 20, 20) for name in ("initials", "script", "floral", "outline")}
+
+    metadata = TemplateRegistrationService().register(
+        source, tmp_path / "template", "Test", regions,
+        pattern_path=pattern, pattern_treatment="preserve",
+    )
+
+    template = TemplateRegistry.load(metadata)
+    assert template.pattern_path == (tmp_path / "template" / "pattern.png").resolve()
+    assert template.pattern_treatment == "preserve"
+    assert template.pattern_path.exists()

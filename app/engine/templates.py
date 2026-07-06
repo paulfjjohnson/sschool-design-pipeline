@@ -60,6 +60,8 @@ class TemplateRegistry:
             default_font=(root / data["default_font"]).resolve() if data.get("default_font") else None,
             script_font=(root / data["script_font"]).resolve() if data.get("script_font") else None,
             script_case=str(data.get("script_case", "as_entered")),
+            pattern_path=(root / data["pattern_path"]).resolve() if data.get("pattern_path") else None,
+            pattern_treatment=str(data.get("pattern_treatment", "preserve")),
         )
 
 

@@ -19,7 +19,7 @@ Rows with missing data, unknown colors, duplicate output filenames, or ambiguous
 
 1. Open the application with `python -m app.main` or the packaged executable.
 2. Select `File > New Project` and choose an empty project folder, or select `File > Open Project` and choose its `project.json`.
-3. To register new artwork, select `Template > Register Editable Regions`, choose a transparent PNG, choose the exact font files, and choose the script capitalization policy. Draw `initials` around the full replaceable initials area and `script` around the school-name area. Draw `floral` around a clean representative sample of the pattern; this sample is colorized and tiled inside generated initials. Draw `outline` around a representative outline segment. Press `Save` after all four regions are visible.
+3. To register new artwork, select `Template > Register Editable Regions`, choose a transparent PNG, choose the exact font files, and choose the script capitalization policy. For best results, choose a separate clean pattern PNG and select either `Preserve Original Colors` or `Tint With Color 2`. Draw `initials` around the full replaceable initials area and `script` around the school-name area. The `floral` selection remains a fallback pattern source when no separate pattern image is supplied. Draw `outline` around a representative outline segment. Press `Save` after all four regions are visible.
 4. Alternatively, select `Load Template` to open an existing registered `template.yaml`.
 5. Select `Load CSV` and choose a file containing the required columns shown above.
 6. Confirm that the project, template, and CSV all appear in the header, then click `Start` once.

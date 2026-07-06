@@ -96,6 +96,8 @@ class Template:
     default_font: Path | None = None
     script_font: Path | None = None
     script_case: str = "as_entered"
+    pattern_path: Path | None = None
+    pattern_treatment: str = "preserve"
     engine_version: str = "1.0"
 
 

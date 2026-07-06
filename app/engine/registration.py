@@ -31,6 +31,8 @@ class TemplateRegistrationService:
         default_font: Path | None = None,
         script_font: Path | None = None,
         script_case: str = "as_entered",
+        pattern_path: Path | None = None,
+        pattern_treatment: str = "preserve",
     ) -> Path:
         if source_path.suffix.lower() != ".png":
             raise ValueError("Template artwork must be a PNG image.")
@@ -57,6 +59,13 @@ class TemplateRegistrationService:
         masks_dir.mkdir(exist_ok=True)
         master_path = destination / "master.png"
         shutil.copy2(source_path, master_path)
+        pattern_metadata: dict[str, str] = {"pattern_treatment": pattern_treatment}
+        if pattern_path:
+            if not pattern_path.exists():
+                raise ValueError(f"Pattern image does not exist: {pattern_path}")
+            with Image.open(pattern_path) as pattern:
+                pattern.convert("RGBA").save(destination / "pattern.png")
+            pattern_metadata["pattern_path"] = "pattern.png"
 
         editable_regions: list[dict[str, object]] = []
         for region_name in self.required_regions:
@@ -108,6 +117,7 @@ class TemplateRegistrationService:
                 "editable_regions": editable_regions,
                 **font_metadata,
                 "script_case": script_case,
+                **pattern_metadata,
             },
         )
         return metadata_path

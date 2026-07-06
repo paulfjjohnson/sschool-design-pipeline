@@ -84,6 +84,7 @@ class TemplateRegistrationDialog(QDialog):
         self.metadata_path: Path | None = None
         self.default_font: Path | None = None
         self.script_font: Path | None = None
+        self.pattern_path: Path | None = None
         self.setWindowTitle("Register Editable Regions")
         self.resize(1000, 760)
         layout = QVBoxLayout(self)
@@ -115,6 +116,15 @@ class TemplateRegistrationDialog(QDialog):
         font_row.addWidget(self.default_font_button)
         font_row.addWidget(self.script_font_button)
         layout.addLayout(font_row)
+        pattern_row = QHBoxLayout()
+        self.pattern_button = QPushButton("Choose Separate Pattern PNG")
+        self.pattern_button.clicked.connect(self._choose_pattern)
+        self.pattern_treatment = QComboBox()
+        self.pattern_treatment.addItem("Preserve Original Colors", "preserve")
+        self.pattern_treatment.addItem("Tint With Color 2", "tint")
+        pattern_row.addWidget(self.pattern_button, 1)
+        pattern_row.addWidget(self.pattern_treatment)
+        layout.addLayout(pattern_row)
         self.canvas = RegionCanvas()
         self.scroll = QScrollArea()
         self.scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -152,6 +162,12 @@ class TemplateRegistrationDialog(QDialog):
             self.script_font = Path(path)
             self.script_font_button.setText(f"Script: {self.script_font.name}")
 
+    def _choose_pattern(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Choose Fill Pattern", "", "PNG Images (*.png)")
+        if path:
+            self.pattern_path = Path(path)
+            self.pattern_button.setText(f"Pattern: {self.pattern_path.name}")
+
     def save_registration(self) -> None:
         if self.source_path is None or self.destination is None:
             QMessageBox.warning(self, "Registration Incomplete", "Create a project and choose a PNG image first.")
@@ -166,7 +182,8 @@ class TemplateRegistrationDialog(QDialog):
         try:
             self.metadata_path = TemplateRegistrationService().register(
                 self.source_path, self.destination, self.name_edit.text(), self.canvas.selections(),
-                self.default_font, self.script_font, self.case_combo.currentData())
+                self.default_font, self.script_font, self.case_combo.currentData(),
+                self.pattern_path, self.pattern_treatment.currentData())
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Registration Failed", str(exc))
             return

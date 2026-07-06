@@ -71,9 +71,12 @@ class PngTemplateEngine:
         cv2.drawContours(silhouette, contours, -1, 255, thickness=cv2.FILLED)
         silhouette_image = Image.fromarray(silhouette, mode="L")
 
-        source = Image.open(template.source_path).convert("RGBA").crop(
-            (floral.x, floral.y, floral.x + floral.width, floral.y + floral.height)
-        )
+        if template.pattern_path:
+            source = Image.open(template.pattern_path).convert("RGBA")
+        else:
+            source = Image.open(template.source_path).convert("RGBA").crop(
+                (floral.x, floral.y, floral.x + floral.width, floral.y + floral.height)
+            )
         if source.width == 0 or source.height == 0:
             raise TemplateValidationError("Floral pattern source region is empty.")
         tiled = Image.new("RGBA", (target.width, target.height))
@@ -85,9 +88,14 @@ class PngTemplateEngine:
                 if (y // source.height) % 2:
                     tile = ImageOps.flip(tile)
                 tiled.alpha_composite(tile, (x, y))
-        rgb = ImageColor.getrgb(_color_to_hex(pattern_color))
-        gray = ImageOps.grayscale(tiled)
-        textured = ImageOps.colorize(gray, black=tuple(max(0, value // 3) for value in rgb), white=rgb).convert("RGBA")
+        if template.pattern_treatment == "tint":
+            rgb = ImageColor.getrgb(_color_to_hex(pattern_color))
+            gray = ImageOps.grayscale(tiled)
+            textured = ImageOps.colorize(
+                gray, black=tuple(max(0, value // 3) for value in rgb), white=rgb
+            ).convert("RGBA")
+        else:
+            textured = tiled.copy()
         textured.putalpha(silhouette_image)
         outline = Image.new("RGBA", glyph.size, (*ImageColor.getrgb(_color_to_hex(outline_color)), 0))
         outline.putalpha(glyph.getchannel("A"))
