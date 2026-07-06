@@ -15,6 +15,14 @@ Pecan Grove Primary,Pelicans,Red,Royal
 
 Rows with missing data, unknown colors, duplicate output filenames, or ambiguous initials are marked for review and are not exported.
 
+Flexible version 2 templates may use CSV or XLSX files and map any column name to an operation. Image columns contain an absolute path or a path relative to the spreadsheet, such as `assets/logo.png`.
+
+## Flexible Templates
+
+After loading a template and batch file, select `Template > Edit Template Operations`. Operations can be added, removed, reordered, and mapped to spreadsheet columns. Supported types are `TEXT`, `SOLID_COLOR`, `PATTERN_FILL`, `IMAGE_REPLACE`, `VISIBILITY`, and `LOCKED`.
+
+Each operation has bounds, a default value, an optional spreadsheet mapping, a required flag, and an override policy. The optional configuration JSON supports settings such as `{"fit":"contain"}`, `{"fit":"cover"}`, `{"case":"title"}`, and `{"color_column":"Accent Color"}`. Saving version 2 operations creates a backup of the prior template metadata.
+
 ## Workflow
 
 1. Open the application with `python -m app.main` or the packaged executable.

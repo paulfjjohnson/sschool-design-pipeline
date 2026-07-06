@@ -11,6 +11,8 @@
 - Natural initials generation without padding.
 - Color library with aliases and unknown-color review failures.
 - Interactive PNG template registration with four operator-drawn editable regions, generated masks, and metadata.
+- Version 2 flexible collection templates with arbitrary ordered operations, CSV/XLSX mappings, defaults, row overrides, and relative image assets.
+- In-memory migration of version 1 Floral Varsity metadata plus metadata backup before saving version 2 operations.
 - Deterministic PNG rendering inside registered regions.
 - Locked-region pixel validation.
 - QA-gated export.

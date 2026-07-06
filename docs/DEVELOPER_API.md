@@ -9,6 +9,10 @@
 - `InitialGenerator`: deterministic natural school initials.
 - `ColorLibrary`: display-name and alias color resolution.
 - `TemplateRegistry`: template metadata loading.
+- `TabularImporter`: normalize CSV and XLSX files into ordered row mappings.
+- `AssetResolver`: resolve strict absolute or spreadsheet-relative image paths.
+- `OperationRenderer`: execute ordered version 2 template operations.
+- `TemplateOperation`: schema-driven text, color, pattern, image, visibility, or locked operation.
 - `TemplateValidator`: editable-region and geometry validation.
 - `PngTemplateEngine`: deterministic PNG rendering inside registered masks.
 - `QAService`: rule-based validation before export.

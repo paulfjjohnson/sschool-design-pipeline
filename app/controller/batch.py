@@ -6,7 +6,8 @@ from typing import Sequence
 
 from app.controller.progress import ProgressService
 from app.data.models import QAResult, QAStatus, SchoolRecord, SchoolStatus, Template
-from app.engine.image_engine import PngTemplateEngine
+from app.engine.image_engine import PngTemplateEngine, RenderResult, _combined_mask
+from app.engine.operations import OperationRenderer
 from app.export.exporter import PngExporter
 from app.export.reports import ReportWriter
 from app.qa.service import QAService
@@ -82,7 +83,12 @@ class BatchProcessor:
 
             record.status = SchoolStatus.PROCESSING
             try:
-                render = self.image_engine.render(template, record)
+                if template.schema_version.startswith("2"):
+                    source_path = project.csv_path or project.root_path / "input" / "batch.csv"
+                    rendered_image = OperationRenderer().render(template, record.source_values, source_path)
+                    render = RenderResult(rendered_image, template, record, _combined_mask(template))
+                else:
+                    render = self.image_engine.render(template, record)
                 qa = self.qa_service.validate(render, record)
                 qa_results.append(qa)
                 if not qa.passed:

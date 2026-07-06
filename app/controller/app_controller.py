@@ -9,6 +9,8 @@ from app.engine.colors import ColorLibrary
 from app.engine.csv_importer import CsvImporter
 from app.engine.initials import InitialGenerator
 from app.engine.templates import TemplateRegistry
+from app.engine.tabular_importer import TabularImporter
+from app.data.models import QAStatus, SchoolStatus
 from app.utils.logging import configure_logging
 
 
@@ -51,7 +53,19 @@ class ApplicationController:
         return self.template
 
     def load_csv(self, path: Path) -> list[SchoolRecord]:
-        self.queue = CsvImporter(ColorLibrary.default(), InitialGenerator()).import_file(path)
+        if path.suffix.lower() == ".xlsx" or (self.template and self.template.schema_version.startswith("2")):
+            batch = TabularImporter().import_file(path)
+            self.queue = []
+            for index, values in enumerate(batch.rows, 1):
+                name = values.get("School") or values.get("Name") or values.get("Display Name") or f"Item {index}"
+                initials = InitialGenerator().generate(name).initials
+                values.setdefault("Generated Initials", initials)
+                self.queue.append(SchoolRecord(index, name, values.get("Mascot", ""),
+                    values.get("Color 1", "Black"), values.get("Color 2", "White"), initials,
+                    f"{name.replace(' ', '_')}_{self.template.name if self.template else 'Collection'}.png",
+                    source_values=values))
+        else:
+            self.queue = CsvImporter(ColorLibrary.default(), InitialGenerator()).import_file(path)
         if self.project:
             self.project.csv_path = path
             self.project_manager.save_project(self.project)
