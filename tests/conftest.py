@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,8 @@ import yaml
 from PIL import Image, ImageDraw
 
 from app.data.models import SchoolRecord
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 @pytest.fixture
@@ -92,4 +95,3 @@ def _region(
         "locked": False,
         "mask_path": mask_path,
     }
-
