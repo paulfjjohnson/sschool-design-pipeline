@@ -83,3 +83,6 @@ class ProgressService:
                 return index
         return len(records)
 
+    def reset(self) -> None:
+        self.save(Progress())
+

@@ -72,3 +72,8 @@ class ApplicationController:
             )
         return result
 
+    def rebuild_all(self) -> BatchResult:
+        if self.project is None or self.template is None:
+            raise RuntimeError("Project and template must be loaded before rebuilding.")
+        return self.batch_processor.rebuild_all(self.project, self.template, self.queue)
+

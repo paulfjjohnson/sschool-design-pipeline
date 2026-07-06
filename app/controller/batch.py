@@ -123,6 +123,15 @@ class BatchProcessor:
         self._remove_failed_from_progress(project, target_rows)
         return self.start(project, template, target_rows)
 
+    def rebuild_all(self, project, template: Template, queue: Sequence[SchoolRecord]) -> BatchResult:
+        ProgressService(project.progress_path).reset()
+        for record in queue:
+            if record.status is not SchoolStatus.NEEDS_REVIEW:
+                record.status = SchoolStatus.PENDING
+                record.qa_status = QAStatus.NOT_RUN
+                record.notes = ""
+        return self.start(project, template, queue)
+
     @staticmethod
     def _remove_failed_from_progress(project, rows: Sequence[SchoolRecord]) -> None:
         service = ProgressService(project.progress_path)

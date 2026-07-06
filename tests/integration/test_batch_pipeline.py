@@ -74,3 +74,18 @@ def test_paused_batch_waits_until_resume(tmp_path: Path) -> None:
     assert not worker.is_alive()
     assert list(project.output_path.glob("*.png"))
 
+
+def test_rebuild_all_ignores_completed_resume_state(tmp_path: Path) -> None:
+    project = ProjectManager().create_project("Rebuild", tmp_path)
+    template = TemplateRegistry.load(Path("sample_project/template/template.yaml"))
+    rows = CsvImporter(ColorLibrary.default(), InitialGenerator()).import_file(
+        Path("sample_project/input/schools.csv")
+    )[:2]
+    processor = BatchProcessor.default()
+    processor.start(project, template, rows)
+
+    rebuilt = processor.rebuild_all(project, template, rows)
+
+    assert rebuilt.completed == 2
+    assert rebuilt.skipped_completed == 0
+

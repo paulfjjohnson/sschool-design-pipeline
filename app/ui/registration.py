@@ -21,13 +21,19 @@ class RegionCanvas(QLabel):
         self.regions: dict[str, QRect] = {}
         self._start: QPoint | None = None
         self._current: QPoint | None = None
+        self.scale_factor = 1.0
+        self.source_size = None
 
-    def set_image(self, path: Path) -> None:
+    def set_image(self, path: Path, maximum_size: tuple[int, int] = (1200, 650)) -> None:
         pixmap = QPixmap(str(path))
         if pixmap.isNull():
             raise ValueError("The selected PNG could not be opened.")
-        self.setPixmap(pixmap)
-        self.setFixedSize(pixmap.size())
+        self.source_size = pixmap.size()
+        fitted = pixmap.scaled(*maximum_size, Qt.AspectRatioMode.KeepAspectRatio,
+                               Qt.TransformationMode.SmoothTransformation)
+        self.scale_factor = fitted.width() / pixmap.width()
+        self.setPixmap(fitted)
+        self.setFixedSize(fitted.size())
         self.regions.clear()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -64,7 +70,9 @@ class RegionCanvas(QLabel):
             painter.drawRect(QRect(self._start, self._current).normalized())
 
     def selections(self) -> dict[str, RegionSelection]:
-        return {name: RegionSelection(rect.x(), rect.y(), rect.width(), rect.height())
+        scale = self.scale_factor
+        return {name: RegionSelection(round(rect.x() / scale), round(rect.y() / scale),
+                                      round(rect.width() / scale), round(rect.height() / scale))
                 for name, rect in self.regions.items()}
 
 
@@ -108,9 +116,10 @@ class TemplateRegistrationDialog(QDialog):
         font_row.addWidget(self.script_font_button)
         layout.addLayout(font_row)
         self.canvas = RegionCanvas()
-        scroll = QScrollArea()
-        scroll.setWidget(self.canvas)
-        layout.addWidget(scroll, 1)
+        self.scroll = QScrollArea()
+        self.scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.scroll.setWidget(self.canvas)
+        layout.addWidget(self.scroll, 1)
         layout.addWidget(QLabel("Choose each region name, then drag a rectangle over that editable area."))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.save_registration)
@@ -125,7 +134,9 @@ class TemplateRegistrationDialog(QDialog):
         if path:
             try:
                 self.source_path = Path(path)
-                self.canvas.set_image(self.source_path)
+                viewport = self.scroll.viewport().size()
+                self.canvas.set_image(self.source_path, (max(400, viewport.width() - 20),
+                                                         max(300, viewport.height() - 20)))
                 self.name_edit.setText(self.source_path.stem.replace("_", " ").title())
             except ValueError as exc:
                 QMessageBox.critical(self, "Invalid Image", str(exc))

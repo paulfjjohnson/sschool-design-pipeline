@@ -32,3 +32,13 @@ def test_corrupt_progress_file_raises_state_error(tmp_path: Path) -> None:
     with pytest.raises(ProgressStateError):
         ProgressService(path).load()
 
+
+def test_reset_clears_all_resume_state(tmp_path: Path) -> None:
+    service = ProgressService(tmp_path / "progress.json")
+    row = SchoolRecord.example(1)
+    service.mark_completed(row, QAResult.passed_for(row))
+
+    service.reset()
+
+    assert service.load().completed_rows == []
+

@@ -35,13 +35,15 @@ class BatchWorker(QThread):
     completed = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, controller: ApplicationController) -> None:
+    def __init__(self, controller: ApplicationController, *, rebuild_all: bool = False) -> None:
         super().__init__()
         self.controller = controller
+        self.rebuild_all = rebuild_all
 
     def run(self) -> None:
         try:
-            self.completed.emit(self.controller.start_batch())
+            operation = self.controller.rebuild_all if self.rebuild_all else self.controller.start_batch
+            self.completed.emit(operation())
         except Exception as exc:  # noqa: BLE001 - delivered to the operator on the UI thread.
             self.failed.emit(str(exc))
 
@@ -94,6 +96,9 @@ class MainWindow(QMainWindow):
         self.action_start_batch = QAction("Start Batch", self)
         self.action_start_batch.setObjectName("action_start_batch")
         self.action_start_batch.triggered.connect(self.start_batch)
+        self.action_rebuild_all = QAction("Rebuild All", self)
+        self.action_rebuild_all.setObjectName("action_rebuild_all")
+        self.action_rebuild_all.triggered.connect(self.rebuild_all)
         self.action_pause = QAction("Pause", self)
         self.action_pause.setObjectName("action_pause")
         self.action_pause.triggered.connect(self.pause_batch)
@@ -142,6 +147,7 @@ class MainWindow(QMainWindow):
         production_menu = self.menuBar().addMenu("Production")
         for action in (
             self.action_start_batch,
+            self.action_rebuild_all,
             self.action_pause,
             self.action_resume,
             self.action_stop,
@@ -168,6 +174,7 @@ class MainWindow(QMainWindow):
             self.action_load_template,
             self.action_load_csv,
             self.action_start_batch,
+            self.action_rebuild_all,
             self.action_pause,
             self.action_resume,
             self.action_stop,
@@ -200,6 +207,7 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout(right_panel)
         for label, action in (
             ("Start", self.action_start_batch),
+            ("Rebuild All", self.action_rebuild_all),
             ("Pause", self.action_pause),
             ("Resume", self.action_resume),
             ("Stop", self.action_stop),
@@ -337,6 +345,26 @@ class MainWindow(QMainWindow):
         self.batch_worker.start()
         self._refresh_header("Running")
         self.statusBar().showMessage("Processing")
+
+    def rebuild_all(self) -> None:
+        if self.batch_worker and self.batch_worker.isRunning():
+            return
+        if self.controller.project is None or self.controller.template is None or not self.controller.queue:
+            QMessageBox.warning(self, "Batch Not Ready", "Load a project, template, and CSV first.")
+            return
+        answer = QMessageBox.question(
+            self,
+            "Rebuild All Schools",
+            "Regenerate every valid school and overwrite matching output files?",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.batch_worker = BatchWorker(self.controller, rebuild_all=True)
+        self.batch_worker.completed.connect(self._batch_completed)
+        self.batch_worker.failed.connect(self._batch_failed)
+        self.batch_worker.start()
+        self._refresh_header("Rebuilding all")
+        self.statusBar().showMessage("Rebuilding all schools")
 
     def _batch_completed(self, result) -> None:  # type: ignore[no-untyped-def]
         self.queue_model.set_rows(self.controller.queue)

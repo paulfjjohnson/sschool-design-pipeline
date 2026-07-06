@@ -31,6 +31,7 @@ The image itself is never modified. Registration copies it to `template/master.p
 ## Batch Controls
 
 - `Start`: process every pending valid school.
+- `Rebuild All`: clear resume state and regenerate every valid school, overwriting matching outputs. Use this after changing a template, pattern selection, fonts, colors, or rendering settings.
 - `Pause`: pause processing between rows.
 - `Resume`: continue after pause.
 - `Stop`: stop after preserving progress.
