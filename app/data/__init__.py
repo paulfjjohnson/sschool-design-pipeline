@@ -1,0 +1,2 @@
+"""Serializable application data models."""
+

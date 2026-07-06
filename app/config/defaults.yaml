@@ -1,0 +1,18 @@
+autosave_interval_seconds: 60
+backup_interval_seconds: 300
+compression_level: 6
+default_dpi: 300
+default_export_height: 3600
+default_export_width: 3600
+default_output_folder: output
+default_project_folder: projects
+export_format: PNG
+language: en
+log_level: INFO
+maximum_worker_threads: 1
+run_qa_before_export: true
+save_preview_thumbnails: false
+stop_on_failure: false
+theme: system
+transparent_background: true
+
