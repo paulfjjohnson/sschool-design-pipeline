@@ -59,6 +59,7 @@ class TemplateRegistry:
             output_height=int(data["output_height"]),
             default_font=(root / data["default_font"]).resolve() if data.get("default_font") else None,
             script_font=(root / data["script_font"]).resolve() if data.get("script_font") else None,
+            script_case=str(data.get("script_case", "as_entered")),
         )
 
 

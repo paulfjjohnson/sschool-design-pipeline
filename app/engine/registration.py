@@ -30,6 +30,7 @@ class TemplateRegistrationService:
         regions: Mapping[str, RegionSelection],
         default_font: Path | None = None,
         script_font: Path | None = None,
+        script_case: str = "as_entered",
     ) -> Path:
         if source_path.suffix.lower() != ".png":
             raise ValueError("Template artwork must be a PNG image.")
@@ -106,6 +107,7 @@ class TemplateRegistrationService:
                 "output_height": height,
                 "editable_regions": editable_regions,
                 **font_metadata,
+                "script_case": script_case,
             },
         )
         return metadata_path

@@ -95,6 +95,7 @@ class Template:
     output_height: int
     default_font: Path | None = None
     script_font: Path | None = None
+    script_case: str = "as_entered"
     engine_version: str = "1.0"
 
 

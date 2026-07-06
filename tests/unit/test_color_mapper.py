@@ -16,3 +16,9 @@ def test_unknown_color_raises_actionable_error() -> None:
     with pytest.raises(UnknownColorError, match="Maroon"):
         library.resolve("Maroon")
 
+
+def test_apparel_palette_resolves_common_school_colors() -> None:
+    library = ColorLibrary.default()
+    for name in ("Blue", "Maroon", "Hunter Green", "Teal", "Light Blue", "Pink", "Brown", "Vegas Gold"):
+        assert library.resolve(name).hex.startswith("#")
+

@@ -33,6 +33,18 @@ class ColorLibrary:
                 ColorDefinition("Purple", "#582C83", (88, 44, 131), []),
                 ColorDefinition("Orange", "#FF8200", (255, 130, 0), []),
                 ColorDefinition("Gray", "#8A8D8F", (138, 141, 143), ["grey"]),
+                ColorDefinition("Blue", "#0067B1", (0, 103, 177), ["true blue"]),
+                ColorDefinition("Maroon", "#800020", (128, 0, 32), ["burgundy", "cardinal"]),
+                ColorDefinition("Hunter Green", "#355E3B", (53, 94, 59), ["forest green", "dark green"]),
+                ColorDefinition("Teal", "#008080", (0, 128, 128), ["aqua teal"]),
+                ColorDefinition("Light Blue", "#6CB4EE", (108, 180, 238), ["sky blue", "carolina blue"]),
+                ColorDefinition("Pink", "#E83E8C", (232, 62, 140), ["hot pink"]),
+                ColorDefinition("Brown", "#6F4E37", (111, 78, 55), ["chocolate"]),
+                ColorDefinition("Vegas Gold", "#C5B358", (197, 179, 88), ["old gold"]),
+                ColorDefinition("Silver", "#A7A9AC", (167, 169, 172), ["metallic silver"]),
+                ColorDefinition("Lime", "#78BE20", (120, 190, 32), ["lime green"]),
+                ColorDefinition("Coral", "#FF6F61", (255, 111, 97), []),
+                ColorDefinition("Cream", "#FFFDD0", (255, 253, 208), ["ivory"]),
             ]
         )
 

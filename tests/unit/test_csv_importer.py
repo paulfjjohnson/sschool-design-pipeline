@@ -28,7 +28,7 @@ def test_unknown_color_marks_row_needs_review(tmp_path: Path) -> None:
     csv_path = tmp_path / "schools.csv"
     csv_path.write_text(
         "School,Mascot,Color 1,Color 2\n"
-        "Sugar Mill Primary,Eagles,Maroon,Royal\n",
+        "Sugar Mill Primary,Eagles,Chartreuse,Royal\n",
         encoding="utf-8",
     )
 

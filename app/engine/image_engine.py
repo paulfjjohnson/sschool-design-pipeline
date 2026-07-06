@@ -3,11 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageColor
+import cv2
+import numpy as np
+from PIL import Image, ImageChops, ImageColor, ImageOps
 
 from app.data.models import SchoolRecord, Template
 from app.engine.templates import TemplateValidationError
 from app.engine.typography import TextRenderer
+from app.engine.colors import ColorLibrary
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,10 +31,9 @@ class PngTemplateEngine:
         image = Image.open(template.source_path).convert("RGBA")
         changed_mask = _combined_mask(template).convert("L")
 
-        self._replace_text(image, template, "initials", record.initials, (255, 255, 255, 255))
-        self._replace_text(image, template, "script", record.school_name, (255, 255, 255, 255))
-        self._recolor_region(image, template, "outline", record.color_primary)
-        self._recolor_region(image, template, "floral", record.color_secondary)
+        self._replace_pattern_initials(image, template, record.initials, record.color_primary, record.color_secondary)
+        self._replace_text(image, template, "script", _apply_case(record.school_name, template.script_case),
+                           (*ImageColor.getrgb(_color_to_hex(record.color_primary)), 255))
         return RenderResult(image=image, template=template, record=record, changed_mask=changed_mask)
 
     def _replace_text(
@@ -52,6 +54,48 @@ class PngTemplateEngine:
         patch.alpha_composite(replacement, (region.x, region.y))
         clear = Image.new("RGBA", image.size, (0, 0, 0, 0))
         image.paste(clear, (0, 0), mask)
+        image.alpha_composite(patch)
+
+    def _replace_pattern_initials(
+        self, image: Image.Image, template: Template, text: str, outline_color: str, pattern_color: str
+    ) -> None:
+        target = _region(template, "initials")
+        floral = _region(template, "floral")
+        target_mask = Image.open(target.mask_path).convert("L") if target.mask_path else _box_mask(image.size, target)
+        glyph = TextRenderer(template.default_font, allow_default_font=self.allow_default_font).render_text(
+            text, (target.width, target.height), fill=(255, 255, 255, 255)
+        )
+        alpha = np.array(glyph.getchannel("A"))
+        contours, _ = cv2.findContours(alpha, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        silhouette = np.zeros_like(alpha)
+        cv2.drawContours(silhouette, contours, -1, 255, thickness=cv2.FILLED)
+        silhouette_image = Image.fromarray(silhouette, mode="L")
+
+        source = Image.open(template.source_path).convert("RGBA").crop(
+            (floral.x, floral.y, floral.x + floral.width, floral.y + floral.height)
+        )
+        if source.width == 0 or source.height == 0:
+            raise TemplateValidationError("Floral pattern source region is empty.")
+        tiled = Image.new("RGBA", (target.width, target.height))
+        for y in range(0, target.height, source.height):
+            for x in range(0, target.width, source.width):
+                tile = source
+                if (x // source.width) % 2:
+                    tile = ImageOps.mirror(tile)
+                if (y // source.height) % 2:
+                    tile = ImageOps.flip(tile)
+                tiled.alpha_composite(tile, (x, y))
+        rgb = ImageColor.getrgb(_color_to_hex(pattern_color))
+        gray = ImageOps.grayscale(tiled)
+        textured = ImageOps.colorize(gray, black=tuple(max(0, value // 3) for value in rgb), white=rgb).convert("RGBA")
+        textured.putalpha(silhouette_image)
+        outline = Image.new("RGBA", glyph.size, (*ImageColor.getrgb(_color_to_hex(outline_color)), 0))
+        outline.putalpha(glyph.getchannel("A"))
+        textured.alpha_composite(outline)
+
+        image.paste(Image.new("RGBA", image.size), (0, 0), target_mask)
+        patch = Image.new("RGBA", image.size)
+        patch.alpha_composite(textured, (target.x, target.y))
         image.alpha_composite(patch)
 
     def _recolor_region(self, image: Image.Image, template: Template, region_name: str, color_name: str) -> None:
@@ -108,15 +152,9 @@ def _box_mask(size: tuple[int, int], region) -> Image.Image:
 
 
 def _color_to_hex(color_name: str) -> str:
-    palette = {
-        "red": "#C8102E",
-        "royal": "#0057B8",
-        "royal blue": "#0057B8",
-        "green": "#00843D",
-        "yellow": "#FFD100",
-        "gold": "#FFD100",
-        "white": "#FFFFFF",
-        "black": "#000000",
-        "navy": "#00205B",
-    }
-    return palette.get(color_name.strip().lower(), "#000000")
+    return ColorLibrary.default().resolve(color_name).hex
+
+
+def _apply_case(value: str, mode: str) -> str:
+    transforms = {"title": str.title, "upper": str.upper, "lower": str.lower}
+    return transforms.get(mode, lambda text: text)(value)

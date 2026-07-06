@@ -87,10 +87,17 @@ class TemplateRegistrationDialog(QDialog):
         self.region_combo = QComboBox()
         self.region_combo.addItems(list(TemplateRegistrationService.required_regions))
         self.region_combo.currentTextChanged.connect(self._select_region)
+        self.case_combo = QComboBox()
+        self.case_combo.addItem("As Entered", "as_entered")
+        self.case_combo.addItem("Title Case", "title")
+        self.case_combo.addItem("UPPERCASE", "upper")
+        self.case_combo.addItem("lowercase", "lower")
         top.addWidget(choose)
         top.addWidget(self.name_edit, 1)
         top.addWidget(QLabel("Draw region:"))
         top.addWidget(self.region_combo)
+        top.addWidget(QLabel("Script case:"))
+        top.addWidget(self.case_combo)
         layout.addLayout(top)
         font_row = QHBoxLayout()
         self.default_font_button = QPushButton("Choose Initials Font")
@@ -148,7 +155,7 @@ class TemplateRegistrationDialog(QDialog):
         try:
             self.metadata_path = TemplateRegistrationService().register(
                 self.source_path, self.destination, self.name_edit.text(), self.canvas.selections(),
-                self.default_font, self.script_font)
+                self.default_font, self.script_font, self.case_combo.currentData())
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Registration Failed", str(exc))
             return
