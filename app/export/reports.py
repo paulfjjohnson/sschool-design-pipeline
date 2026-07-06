@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from datetime import datetime
 from html import escape
 from pathlib import Path
 from typing import Sequence
@@ -48,22 +49,16 @@ class ReportWriter:
                     ]
                 )
 
-        with failed_csv_path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.writer(handle)
-            writer.writerow(["row", "school", "status", "qa", "output", "failure_reason"])
-            for record in records:
-                if record.status.value not in {"Failed", "NeedsReview"} and not record.notes:
-                    continue
-                writer.writerow(
-                    [
-                        record.row_number,
-                        record.school_name,
-                        record.status.value,
-                        record.qa_status.value,
-                        record.export_filename,
-                        record.notes or record.status.value,
-                    ]
-                )
+        failed_rows = [
+            record
+            for record in records
+            if record.status.value in {"Failed", "NeedsReview"} or record.notes
+        ]
+        try:
+            self._write_failed_items(failed_csv_path, failed_rows)
+        except PermissionError:
+            failed_csv_path = self.report_dir / f"failed_items-{datetime.now():%Y%m%d-%H%M%S}.csv"
+            self._write_failed_items(failed_csv_path, failed_rows)
 
         rows = "\n".join(
             "<tr>"
@@ -90,3 +85,20 @@ class ReportWriter:
             encoding="utf-8",
         )
         return ReportPaths(csv=csv_path, html=html_path, failed_csv=failed_csv_path)
+
+    @staticmethod
+    def _write_failed_items(path: Path, records: Sequence[SchoolRecord]) -> None:
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["row", "school", "status", "qa", "output", "failure_reason"])
+            for record in records:
+                writer.writerow(
+                    [
+                        record.row_number,
+                        record.school_name,
+                        record.status.value,
+                        record.qa_status.value,
+                        record.export_filename,
+                        record.notes or record.status.value,
+                    ]
+                )

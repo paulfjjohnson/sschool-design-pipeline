@@ -87,11 +87,12 @@ class OperationRenderer:
         outline_mask = ImageChops.subtract(stroke_mask, fill_mask)
         outline_color = self._resolve_configured_color(operation, row, "outline_color_column", "outline_color", "Black")
         pattern = self._load_pattern(template, operation, row, spreadsheet_path)
+        pattern = self._scale_pattern(pattern, float(operation.config.get("pattern_scale", 1.0)))
         pattern = self._tile(pattern, (operation.width, operation.height))
-        if operation.config.get("pattern_treatment") == "tint_nonwhite":
-            pattern = self._tint_nonwhite(pattern, self._resolve_configured_color(
-                operation, row, "pattern_color_column", "pattern_color", "Black"
-            ))
+        pattern_treatment = operation.config.get("pattern_treatment")
+        if pattern_treatment in {"tint_nonwhite", "tint_saturated"}:
+            color = self._resolve_configured_color(operation, row, "pattern_color_column", "pattern_color", "Black")
+            pattern = self._tint_saturated(pattern, color) if pattern_treatment == "tint_saturated" else self._tint_nonwhite(pattern, color)
         patch = Image.new("RGBA", (operation.width, operation.height), (0, 0, 0, 0))
         outline_layer = Image.new("RGBA", patch.size, (*ImageColor.getrgb(outline_color), 255))
         patch.paste(outline_layer, (0, 0), outline_mask)
@@ -169,6 +170,16 @@ class OperationRenderer:
         return fitted
 
     @staticmethod
+    def _scale_pattern(source: Image.Image, scale: float) -> Image.Image:
+        if scale <= 0:
+            raise ValueError("pattern_scale must be greater than 0.")
+        if scale == 1:
+            return source
+        width = max(1, int(round(source.width * scale)))
+        height = max(1, int(round(source.height * scale)))
+        return source.resize((width, height), Image.Resampling.LANCZOS)
+
+    @staticmethod
     def _tint_nonwhite(source: Image.Image, color: str) -> Image.Image:
         target = ImageColor.getrgb(color)
         tinted = source.copy()
@@ -177,6 +188,20 @@ class OperationRenderer:
             for x in range(tinted.width):
                 red, green, blue, alpha = pixels[x, y]
                 if alpha and min(red, green, blue) < 245:
+                    pixels[x, y] = (*target, alpha)
+        return tinted
+
+    @staticmethod
+    def _tint_saturated(source: Image.Image, color: str) -> Image.Image:
+        target = ImageColor.getrgb(color)
+        tinted = source.copy()
+        pixels = tinted.load()
+        for y in range(tinted.height):
+            for x in range(tinted.width):
+                red, green, blue, alpha = pixels[x, y]
+                spread = max(red, green, blue) - min(red, green, blue)
+                darkness = 255 - max(red, green, blue)
+                if alpha and (spread >= 25 or darkness >= 35):
                     pixels[x, y] = (*target, alpha)
         return tinted
 
