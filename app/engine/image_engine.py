@@ -66,9 +66,7 @@ class PngTemplateEngine:
             text, (target.width, target.height), fill=(255, 255, 255, 255)
         )
         alpha = np.array(glyph.getchannel("A"))
-        contours, _ = cv2.findContours(alpha, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        silhouette = np.zeros_like(alpha)
-        cv2.drawContours(silhouette, contours, -1, 255, thickness=cv2.FILLED)
+        silhouette = _filled_glyph_silhouette(alpha)
         silhouette_image = Image.fromarray(silhouette, mode="L")
 
         if template.pattern_path:
@@ -166,3 +164,27 @@ def _color_to_hex(color_name: str) -> str:
 def _apply_case(value: str, mode: str) -> str:
     transforms = {"title": str.title, "upper": str.upper, "lower": str.lower}
     return transforms.get(mode, lambda text: text)(value)
+
+
+def _filled_glyph_silhouette(alpha: np.ndarray) -> np.ndarray:
+    contours, hierarchy = cv2.findContours(alpha, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    silhouette = np.zeros_like(alpha)
+    if hierarchy is None:
+        return silhouette
+    hierarchy = hierarchy[0]
+    by_depth: list[tuple[int, int]] = []
+    for index in range(len(contours)):
+        depth = 0
+        parent = hierarchy[index][3]
+        while parent != -1:
+            depth += 1
+            parent = hierarchy[parent][3]
+        by_depth.append((depth, index))
+    outline_font = any(depth >= 3 for depth, _ in by_depth)
+    for depth, index in sorted(by_depth):
+        if outline_font:
+            fill = 0 if depth >= 3 and depth % 2 == 1 else 255
+        else:
+            fill = 255 if depth % 2 == 0 else 0
+        cv2.drawContours(silhouette, contours, index, fill, thickness=cv2.FILLED)
+    return silhouette
