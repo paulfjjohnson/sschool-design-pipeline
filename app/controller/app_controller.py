@@ -9,6 +9,7 @@ from app.engine.colors import ColorLibrary
 from app.engine.csv_importer import CsvImporter
 from app.engine.initials import InitialGenerator
 from app.engine.templates import TemplateRegistry
+from app.utils.logging import configure_logging
 
 
 class ApplicationController:
@@ -18,6 +19,7 @@ class ApplicationController:
         self.project: Project | None = None
         self.template: Template | None = None
         self.queue: list[SchoolRecord] = []
+        self.logger = None
 
     @classmethod
     def fake(cls) -> ApplicationController:
@@ -25,10 +27,14 @@ class ApplicationController:
 
     def new_project(self, name: str, root: Path) -> Project:
         self.project = self.project_manager.create_project(name, root)
+        self.logger = configure_logging(root / "logs", "INFO")
+        self.logger.info("Project created: %s", name)
         return self.project
 
     def open_project(self, path: Path) -> Project:
         self.project = self.project_manager.load_project(path)
+        self.logger = configure_logging(self.project.root_path / "logs", "INFO")
+        self.logger.info("Project opened")
         metadata_path = self.project.root_path / "template" / "template.yaml"
         if metadata_path.exists():
             self.template = TemplateRegistry.load(metadata_path)
@@ -54,5 +60,15 @@ class ApplicationController:
     def start_batch(self) -> BatchResult:
         if self.project is None or self.template is None:
             raise RuntimeError("Project and template must be loaded before starting.")
-        return self.batch_processor.start(self.project, self.template, self.queue)
+        if self.logger:
+            self.logger.info("Batch started with %d rows", len(self.queue))
+        result = self.batch_processor.start(self.project, self.template, self.queue)
+        if self.logger:
+            self.logger.info(
+                "Batch finished: %d completed, %d failed, %d skipped",
+                result.completed,
+                result.failed,
+                result.skipped,
+            )
+        return result
 

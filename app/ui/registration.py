@@ -74,6 +74,8 @@ class TemplateRegistrationDialog(QDialog):
         self.destination = destination
         self.source_path: Path | None = None
         self.metadata_path: Path | None = None
+        self.default_font: Path | None = None
+        self.script_font: Path | None = None
         self.setWindowTitle("Register Editable Regions")
         self.resize(1000, 760)
         layout = QVBoxLayout(self)
@@ -90,6 +92,14 @@ class TemplateRegistrationDialog(QDialog):
         top.addWidget(QLabel("Draw region:"))
         top.addWidget(self.region_combo)
         layout.addLayout(top)
+        font_row = QHBoxLayout()
+        self.default_font_button = QPushButton("Choose Initials Font")
+        self.default_font_button.clicked.connect(lambda: self._choose_font("default"))
+        self.script_font_button = QPushButton("Choose Script Font")
+        self.script_font_button.clicked.connect(lambda: self._choose_font("script"))
+        font_row.addWidget(self.default_font_button)
+        font_row.addWidget(self.script_font_button)
+        layout.addLayout(font_row)
         self.canvas = RegionCanvas()
         scroll = QScrollArea()
         scroll.setWidget(self.canvas)
@@ -113,6 +123,17 @@ class TemplateRegistrationDialog(QDialog):
             except ValueError as exc:
                 QMessageBox.critical(self, "Invalid Image", str(exc))
 
+    def _choose_font(self, kind: str) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Choose Font", "C:/Windows/Fonts", "Font Files (*.ttf *.otf)")
+        if not path:
+            return
+        if kind == "default":
+            self.default_font = Path(path)
+            self.default_font_button.setText(f"Initials: {self.default_font.name}")
+        else:
+            self.script_font = Path(path)
+            self.script_font_button.setText(f"Script: {self.script_font.name}")
+
     def save_registration(self) -> None:
         if self.source_path is None or self.destination is None:
             QMessageBox.warning(self, "Registration Incomplete", "Create a project and choose a PNG image first.")
@@ -121,9 +142,13 @@ class TemplateRegistrationDialog(QDialog):
         if missing:
             QMessageBox.warning(self, "Registration Incomplete", f"Draw these regions: {', '.join(sorted(missing))}.")
             return
+        if self.default_font is None or self.script_font is None:
+            QMessageBox.warning(self, "Registration Incomplete", "Choose the initials and script font files.")
+            return
         try:
             self.metadata_path = TemplateRegistrationService().register(
-                self.source_path, self.destination, self.name_edit.text(), self.canvas.selections())
+                self.source_path, self.destination, self.name_edit.text(), self.canvas.selections(),
+                self.default_font, self.script_font)
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Registration Failed", str(exc))
             return

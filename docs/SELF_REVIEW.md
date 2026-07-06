@@ -27,7 +27,7 @@
 - PSD, AI, EPS, PDF vector editing remain future roadmap features.
 - SVG support is represented in the architecture but the production renderer implemented here is PNG-first.
 - The sample template uses simple raster fixtures. Real production templates must be registered with masks and explicit fonts.
-- The installer script requires Inno Setup to be installed externally.
+- The Windows installer is built with Inno Setup from `installer/SchoolDesignPipeline.iss`.
 
 ## Production Risk Review
 

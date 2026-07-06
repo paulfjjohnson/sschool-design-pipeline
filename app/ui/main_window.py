@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 
 from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtGui import QAction
@@ -21,6 +22,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.controller.app_controller import ApplicationController
+from app.data.models import SchoolStatus
+from app.engine.templates import TemplateValidator
 from app.ui.models import SchoolQueueModel
 from app.ui.preview import PreviewWidget
 from app.ui.registration import TemplateRegistrationDialog
@@ -84,9 +87,9 @@ class MainWindow(QMainWindow):
         self.action_register_regions = QAction("Register Editable Regions", self)
         self.action_register_regions.triggered.connect(self.register_template)
         self.action_validate_template = QAction("Validate Template", self)
+        self.action_validate_template.triggered.connect(self.validate_template)
         self.action_view_template_metadata = QAction("View Template Metadata", self)
-        self.action_duplicate_template = QAction("Duplicate Template", self)
-        self.action_lock_template = QAction("Lock Template", self)
+        self.action_view_template_metadata.triggered.connect(self.view_template_metadata)
 
         self.action_start_batch = QAction("Start Batch", self)
         self.action_start_batch.setObjectName("action_start_batch")
@@ -104,12 +107,14 @@ class MainWindow(QMainWindow):
         self.action_reprocess_failed.setObjectName("action_reprocess_failed")
         self.action_reprocess_failed.triggered.connect(self.reprocess_failed)
         self.action_skip_selected = QAction("Skip Selected", self)
+        self.action_skip_selected.triggered.connect(self.skip_selected)
         self.action_export_completed_log = QAction("Export Completed Log", self)
+        self.action_export_completed_log.triggered.connect(self.export_log)
 
-        self.action_run_qa_current = QAction("Run QA on Current", self)
-        self.action_run_qa_all = QAction("Run QA on All Completed", self)
         self.action_view_failed = QAction("View Failed Items", self)
+        self.action_view_failed.triggered.connect(self.view_failed)
         self.action_export_qa = QAction("Export QA Report", self)
+        self.action_export_qa.triggered.connect(self.export_qa_report)
         self.action_settings = QAction("Settings", self)
         self.action_settings.triggered.connect(lambda: SettingsDialog().exec())
 
@@ -131,8 +136,6 @@ class MainWindow(QMainWindow):
             self.action_register_regions,
             self.action_validate_template,
             self.action_view_template_metadata,
-            self.action_duplicate_template,
-            self.action_lock_template,
         ):
             template_menu.addAction(action)
 
@@ -150,8 +153,6 @@ class MainWindow(QMainWindow):
 
         qa_menu = self.menuBar().addMenu("QA")
         for action in (
-            self.action_run_qa_current,
-            self.action_run_qa_all,
             self.action_view_failed,
             self.action_export_qa,
         ):
@@ -295,6 +296,23 @@ class MainWindow(QMainWindow):
             self.preview.load_image(template.source_path)
             self._refresh_header("Template loaded")
 
+    def validate_template(self) -> None:
+        if self.controller.template is None:
+            QMessageBox.warning(self, "No Template", "Load or register a template first.")
+            return
+        result = TemplateValidator().validate(self.controller.template)
+        message = "Template passed validation." if result.passed else "\n".join(result.failures)
+        self.qa_panel.setPlainText(message)
+        (QMessageBox.information if result.passed else QMessageBox.critical)(self, "Template Validation", message)
+
+    def view_template_metadata(self) -> None:
+        template = self.controller.template
+        if template is None:
+            QMessageBox.warning(self, "No Template", "Load or register a template first.")
+            return
+        regions = "\n".join(f"{r.name}: {r.x}, {r.y}, {r.width} x {r.height}" for r in template.editable_regions)
+        QMessageBox.information(self, "Template Metadata", f"{template.name} v{template.version}\n{template.output_width} x {template.output_height}\n\n{regions}")
+
     def load_csv(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load CSV", "", "CSV Files (*.csv)")
         if path:
@@ -354,6 +372,37 @@ class MainWindow(QMainWindow):
         )
         self.queue_model.set_rows(self.controller.queue)
         self.log_view.append(f"Reprocessed failures: {result.completed} completed, {result.failed} failed.")
+
+    def skip_selected(self) -> None:
+        selected = self.queue_view.selectionModel().selectedRows()
+        for index in selected:
+            self.controller.queue[index.row()].status = SchoolStatus.SKIPPED
+        self.queue_model.set_rows(self.controller.queue)
+
+    def view_failed(self) -> None:
+        failed = [row for row in self.controller.queue if row.status in {SchoolStatus.FAILED, SchoolStatus.NEEDS_REVIEW}]
+        self.qa_panel.setPlainText("\n".join(f"{row.school_name}: {row.notes or row.status.value}" for row in failed) or "No failed items.")
+
+    def export_log(self) -> None:
+        if self.controller.project is None:
+            QMessageBox.warning(self, "No Project", "Create or open a project first.")
+            return
+        source = self.controller.project.root_path / "logs" / "school_design_pipeline.log"
+        destination, _ = QFileDialog.getSaveFileName(self, "Export Log", "school_design_pipeline.log", "Log Files (*.log)")
+        if destination and source.exists():
+            shutil.copy2(source, destination)
+
+    def export_qa_report(self) -> None:
+        if self.controller.project is None:
+            QMessageBox.warning(self, "No Project", "Create or open a project first.")
+            return
+        source = self.controller.project.root_path / "reports" / "batch_summary.html"
+        if not source.exists():
+            QMessageBox.warning(self, "No QA Report", "Run a batch first.")
+            return
+        destination, _ = QFileDialog.getSaveFileName(self, "Export QA Report", "batch_summary.html", "HTML Files (*.html)")
+        if destination:
+            shutil.copy2(source, destination)
 
     def open_output_folder(self) -> None:
         if self.controller.project and self.controller.project.output_path:

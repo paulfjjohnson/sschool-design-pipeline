@@ -28,6 +28,14 @@ python -m app.main --version
 powershell -ExecutionPolicy Bypass -File scripts/build.ps1
 ```
 
+Build the Windows installer after installing Inno Setup:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\SchoolDesignPipeline.iss
+```
+
+The installer is written to `dist\installer\SchoolDesignPipelineSetup.exe`.
+
 Output:
 
 ```text

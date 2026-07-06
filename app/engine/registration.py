@@ -28,6 +28,8 @@ class TemplateRegistrationService:
         destination: Path,
         name: str,
         regions: Mapping[str, RegionSelection],
+        default_font: Path | None = None,
+        script_font: Path | None = None,
     ) -> Path:
         if source_path.suffix.lower() != ".png":
             raise ValueError("Template artwork must be a PNG image.")
@@ -82,6 +84,16 @@ class TemplateRegistrationService:
 
         metadata_path = destination / "template.yaml"
         template_id = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "registered-template"
+        font_metadata: dict[str, str] = {}
+        fonts_dir = destination / "fonts"
+        for key, font_path in (("default_font", default_font), ("script_font", script_font)):
+            if font_path:
+                if not font_path.exists():
+                    raise ValueError(f"Font file does not exist: {font_path}")
+                fonts_dir.mkdir(exist_ok=True)
+                target = fonts_dir / font_path.name
+                shutil.copy2(font_path, target)
+                font_metadata[key] = f"fonts/{target.name}"
         write_yaml(
             metadata_path,
             {
@@ -93,6 +105,7 @@ class TemplateRegistrationService:
                 "output_width": width,
                 "output_height": height,
                 "editable_regions": editable_regions,
+                **font_metadata,
             },
         )
         return metadata_path

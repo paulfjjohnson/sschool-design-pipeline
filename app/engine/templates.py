@@ -57,8 +57,8 @@ class TemplateRegistry:
             geometry_checksum=checksum,
             output_width=int(data["output_width"]),
             output_height=int(data["output_height"]),
-            default_font=Path(data["default_font"]).resolve() if data.get("default_font") else None,
-            script_font=Path(data["script_font"]).resolve() if data.get("script_font") else None,
+            default_font=(root / data["default_font"]).resolve() if data.get("default_font") else None,
+            script_font=(root / data["script_font"]).resolve() if data.get("script_font") else None,
         )
 
 

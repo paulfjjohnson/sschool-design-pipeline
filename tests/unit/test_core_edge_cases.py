@@ -63,6 +63,7 @@ def test_application_controller_loads_project_template_csv_and_starts(tmp_path: 
     assert len(queue) == 4
     assert result.completed == 4
     assert len(list(project.output_path.glob("*.png"))) == 4
+    assert list((project.root_path / "logs").glob("*.log"))
 
 
 def test_application_controller_reopens_project_inputs(tmp_path: Path) -> None:
