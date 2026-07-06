@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 from app.data.models import EditableRegion, RegionType, Template
+from app.engine.migration import migrate_v1_regions, parse_v2_operations
 from app.data.serialization import read_yaml
 from app.utils.errors import ErrorCategory, PipelineError
 
@@ -47,6 +48,11 @@ class TemplateRegistry:
             for item in data.get("editable_regions", [])
         ]
         checksum = _sha256(source_path)
+        operations = parse_v2_operations(data.get("operations", []), root) if data.get("operations") else migrate_v1_regions(regions)
+        if not regions and operations:
+            regions = [EditableRegion(op.operation_id, op.name, RegionType.TEXT if op.operation_type.value == "TEXT" else RegionType.COLOR,
+                                      op.x, op.y, op.width, op.height, mask_path=op.mask_path)
+                       for op in operations if op.operation_type.value != "LOCKED"]
         return Template(
             template_id=str(data["template_id"]),
             name=str(data["name"]),
@@ -62,6 +68,8 @@ class TemplateRegistry:
             script_case=str(data.get("script_case", "as_entered")),
             pattern_path=(root / data["pattern_path"]).resolve() if data.get("pattern_path") else None,
             pattern_treatment=str(data.get("pattern_treatment", "preserve")),
+            operations=operations,
+            schema_version=str(data.get("schema_version", "1.0")),
         )
 
 
@@ -72,10 +80,24 @@ class TemplateValidator:
             failures.append(f"Unsupported template format: {template.format}")
         if not template.source_path.exists():
             failures.append(f"Missing template source: {template.source_path}")
-        region_names = {region.name for region in template.editable_regions}
-        missing = TemplateRegistry.required_regions - region_names
-        if missing:
-            failures.append(f"Missing editable regions: {', '.join(sorted(missing))}")
+        if not template.schema_version.startswith("2"):
+            region_names = {region.name for region in template.editable_regions}
+            missing = TemplateRegistry.required_regions - region_names
+            if missing:
+                failures.append(f"Missing editable regions: {', '.join(sorted(missing))}")
+        else:
+            operation_ids = [operation.operation_id for operation in template.operations]
+            if not operation_ids:
+                failures.append("Template has no registered operations.")
+            if len(operation_ids) != len(set(operation_ids)):
+                failures.append("Operation IDs must be unique.")
+            for operation in template.operations:
+                if operation.width <= 0 or operation.height <= 0:
+                    failures.append(f"Operation {operation.name} has invalid dimensions.")
+                if operation.x < 0 or operation.y < 0 or operation.x + operation.width > template.output_width or operation.y + operation.height > template.output_height:
+                    failures.append(f"Operation {operation.name} is outside the output canvas.")
+                if operation.mask_path and not operation.mask_path.exists():
+                    failures.append(f"Operation {operation.name} mask is missing: {operation.mask_path}")
         for region in template.editable_regions:
             if region.width <= 0 or region.height <= 0:
                 failures.append(f"Region {region.name} has invalid dimensions.")

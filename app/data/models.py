@@ -35,6 +35,15 @@ class RegionType(str, Enum):
     VECTOR = "VECTOR"
 
 
+class OperationType(str, Enum):
+    TEXT = "TEXT"
+    SOLID_COLOR = "SOLID_COLOR"
+    PATTERN_FILL = "PATTERN_FILL"
+    IMAGE_REPLACE = "IMAGE_REPLACE"
+    VISIBILITY = "VISIBILITY"
+    LOCKED = "LOCKED"
+
+
 @dataclass(slots=True)
 class AppSettings:
     schema_version: str = SCHEMA_VERSION
@@ -83,6 +92,24 @@ class EditableRegion:
 
 
 @dataclass(slots=True)
+class TemplateOperation:
+    operation_id: str
+    name: str
+    operation_type: OperationType
+    layer_order: int
+    x: int
+    y: int
+    width: int
+    height: int
+    column: str | None = None
+    default_value: str | None = None
+    allow_override: bool = True
+    required: bool = False
+    mask_path: Path | None = None
+    config: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class Template:
     template_id: str
     name: str
@@ -98,6 +125,8 @@ class Template:
     script_case: str = "as_entered"
     pattern_path: Path | None = None
     pattern_treatment: str = "preserve"
+    operations: list[TemplateOperation] = field(default_factory=list)
+    schema_version: str = "1.0"
     engine_version: str = "1.0"
 
 
@@ -122,6 +151,7 @@ class SchoolRecord:
     status: SchoolStatus = SchoolStatus.PENDING
     qa_status: QAStatus = QAStatus.NOT_RUN
     notes: str = ""
+    source_values: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def example(cls, row_number: int = 1) -> SchoolRecord:
